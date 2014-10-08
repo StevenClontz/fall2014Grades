@@ -1,42 +1,43 @@
 'use strict'
 
-class Grade
-  constructor: (@score, @maxScore) ->
-  ratio: =>
-    @score / @maxScore
-  percentage: =>
-    @ratio() * 100
-  display: =>
-    """
-    #{@percentage().toFixed(1)}%
-    (#{@score.toFixed(1)}/#{@maxScore.toFixed(1)})
-    """
-
 angular.module('gradeCalcNgApp')
   .controller 'MainCtrl', ($scope) ->
-    $scope.currentGrade = new Grade(86, 100) 
-    $scope.finalWeight = new Grade(35, 100)
-    $scope.desiredGrade = new Grade(90, 100)
+    $scope.currentGrade =
+      midterm: 70
+      quizzes: 85
+      presentations: 2
+      absences: 0
 
-    $scope.neededForFinal = ->
-      overallRatioEarned = 
-        $scope.currentGrade.ratio() * 
-        (1 - $scope.finalWeight.ratio())
-      overallRatioNeeded =
-        $scope.desiredGrade.ratio() - overallRatioEarned
-      finalRatioNeeded = 
-        overallRatioNeeded / $scope.finalWeight.ratio()
-      finalScoreNeeded =
-        finalRatioNeeded * $scope.finalWeight.score
-      new Grade(finalScoreNeeded, $scope.finalWeight.score)
+    $scope.projectedGrade = ->
+      presentationGrade = switch $scope.currentGrade.presentations
+        when 0 then 0
+        when 1 then 40
+        when 2 then 80
+        else 100
+      attendanceGrade = switch $scope.currentGrade.absences
+        when 0,1 then 100
+        when 2 then 90
+        when 3 then 60
+        when 4 then 30
+        else -800
+      return {
+        midterm: $scope.currentGrade.midterm
+        quiz: Math.min $scope.currentGrade.quizzes*2,200
+        presentations: presentationGrade
+        attendance: attendanceGrade
+        classParticipation: 100
+        participation: ->
+          @classParticipation + presentationGrade + attendanceGrade
+        total: ->
+          @midterm + @quiz + @participation()
+      }
 
-    $scope.bestGrade = ->
-      overallRatioEarned = 
-        $scope.currentGrade.ratio() * 
-        (1 - $scope.finalWeight.ratio())
-      bestRatioPossible =
-        $scope.finalWeight.ratio() + overallRatioEarned
-      bestScorePossible =
-        bestRatioPossible * $scope.desiredGrade.maxScore
-      new Grade(bestScorePossible, $scope.desiredGrade.maxScore)
+    $scope.neededOnFinal = ->
+      return {
+        A: 720 - $scope.projectedGrade().total()
+        B: 640 - $scope.projectedGrade().total()
+        C: 560 - $scope.projectedGrade().total()
+        D: 480 - $scope.projectedGrade().total()
+      }
+
 
